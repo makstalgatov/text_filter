@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, UploadFile, File, HTTPException
+from fastapi import FastAPI, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from typing import List, Optional
 
@@ -43,9 +43,6 @@ HTML_TEMPLATE = """
             border-radius: 5px;
             font-size: 16px;
         }
-        input[type="file"] {
-            margin: 10px 0;
-        }
         button {
             padding: 10px 20px;
             background-color: #007BFF;
@@ -65,24 +62,47 @@ HTML_TEMPLATE = """
             border: 1px solid #ddd;
             border-radius: 5px;
             text-align: left;
+            position: relative;
         }
         .result h3 {
             margin: 0 0 10px;
             color: #555;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .copy-btn:hover {
+            background-color: #218838;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Text Filter Application</h1>
-        <form action="/process" method="post" enctype="multipart/form-data">
-            <label for="text">Enter text or upload a file:</label>
+        <form action="/process" method="post">
+            <label for="text">Enter text:</label>
             <textarea name="text" id="text" placeholder="Enter your text here..."></textarea>
-            <input type="file" name="file" id="file"><br>
             <button type="submit">Process</button>
         </form>
         {result_section}
     </div>
+    <script>
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+    </script>
 </body>
 </html>
 """
@@ -93,19 +113,10 @@ async def home():
 
 @app.post("/process", response_class=HTMLResponse)
 async def process_text(
-    text: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None)
+    text: Optional[str] = Form(None)
 ):
-    if not text and not file:
-        raise HTTPException(status_code=400, detail="Please provide text or upload a file.")
-
-    # Combine text input and file content if provided
-    if file:
-        file_content = (await file.read()).decode("utf-8")
-        text = (text or "") + "\n" + file_content
-
     if not text:
-        raise HTTPException(status_code=400, detail="No text found.")
+        raise HTTPException(status_code=400, detail="Please provide text.")
 
     # Process the text to find "42123" and its numeric following line
     lines = text.splitlines()
@@ -118,7 +129,14 @@ async def process_text(
 
     result_html = ""
     if results:
-        result_html = f"<div class='result'><h3>Result:</h3><p>{'<br>'.join(results)}</p></div>"
+        result_text = "<br>".join(results)
+        result_html = (
+            f"<div class='result'>"
+            f"<h3>Result:</h3>"
+            f"<p id='result-text'>{result_text}</p>"
+            f"<button class='copy-btn' onclick=\"copyToClipboard('result-text')\">Copy</button>"
+            f"</div>"
+        )
     else:
         result_html = "<div class='result'><h3>Result:</h3><p>No matches found.</p></div>"
 
