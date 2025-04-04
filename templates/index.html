@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iTest text filter</title>
+    <!-- Link to Favicon -->
+    <link rel="icon" href="{{ url_for('static', path='/favicon.ico') }}" type="image/x-icon">
+    <!-- Link to external CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>iTest text filter</h1>
+        
+        <!-- Form submits using JavaScript (handleSubmit) -->
+        <form id="filterForm" onsubmit="handleSubmit(event); return false;">
+            <div class="label-container">
+                <label for="text">Enter text:</label>
+                <button type="button" id="clear-btn" class="clear-btn" title="Clear text">&times;</button>
+            </div>
+            <textarea name="text" id="text" placeholder="Enter your text here..." required></textarea>
+            
+            <!-- Error message area -->
+            <div class="error" id="error-message"></div>
+            
+            <!-- Loading indicator -->
+            <div class="loading" id="loading"></div>
+            
+            <button type="submit" id="submit-btn">Process</button>
+        </form>
+        
+        <!-- Section to display results dynamically -->
+        <div id="result-section">
+            {# Jinja2 block for initial rendering if needed,
+               though JS will populate this after form submission.
+               We can leave it empty initially or render previous results if passed from backend.
+               For simplicity, starting empty. #}
+        </div>
+    </div>
+
+    <!-- Link to external JavaScript -->
+    <script src="{{ url_for('static', path='/js/script.js') }}"></script>
+</body>
+</html> 

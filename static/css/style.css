@@ -1,0 +1,245 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+body {
+    font-family: 'Roboto', Arial, sans-serif; /* Use Roboto font */
+    background-color: #f8f9fa; /* Lighter grey background */
+    color: #343a40; /* Darker text color for better contrast */
+    margin: 0;
+    padding: 20px; /* Add some padding around the container */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align container to the top */
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+.container {
+    background: #ffffff; /* White background */
+    padding: 30px 40px; /* Increase padding */
+    border-radius: 12px; /* Slightly more rounded corners */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Softer shadow */
+    width: 90%;
+    max-width: 700px; /* Slightly wider max-width */
+    text-align: center;
+    margin-top: 40px; /* Add margin from top */
+}
+
+h1 {
+    color: #212529; /* Even darker heading color */
+    margin-bottom: 30px; /* More space below heading */
+    font-weight: 700; /* Bolder heading */
+}
+
+label {
+    display: block; /* Make label take full width */
+    text-align: left; /* Align label text left */
+    margin-bottom: 8px; /* Space between label and textarea */
+    font-weight: 500; /* Medium font weight for label */
+    color: #495057;
+}
+
+.label-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px; /* Maintain space below label */
+}
+
+.label-container label {
+    margin-bottom: 0; /* Remove bottom margin from label inside container */
+}
+
+.clear-btn {
+    background: none;
+    border: none;
+    color: #6c757d; /* Grey color */
+    font-size: 20px; /* Larger cross */
+    line-height: 1;
+    padding: 0 5px; /* Small padding */
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.clear-btn:hover {
+    color: #dc3545; /* Red on hover */
+    opacity: 1;
+}
+
+textarea {
+    width: 100%; /* Use 100% width */
+    height: 180px; /* Slightly taller */
+    margin-bottom: 20px; /* More space below textarea */
+    padding: 12px 15px; /* Increase padding */
+    border: 1px solid #ced4da; /* Lighter border */
+    border-radius: 8px; /* Match container radius */
+    font-size: 16px;
+    resize: vertical;
+    box-sizing: border-box; /* Ensure padding is included in width */
+    line-height: 1.5; /* Improve readability */
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Smooth transitions */
+}
+
+textarea:focus {
+    border-color: #80bdff; /* Highlight focus */
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Focus shadow */
+}
+
+button#submit-btn { /* Target the specific button */
+    padding: 12px 25px; /* Increase padding */
+    background-color: #007bff; /* Primary blue */
+    color: white;
+    border: none;
+    border-radius: 8px; /* Match container radius */
+    font-size: 16px;
+    font-weight: 500; /* Medium weight */
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease; /* Smooth transitions */
+    display: inline-block; /* Ensure it behaves like a block for margin auto */
+    margin: 0 auto; /* Center the button */
+}
+
+button#submit-btn:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+    transform: translateY(-1px); /* Slight lift effect */
+}
+
+button#submit-btn:disabled {
+    background-color: #6c757d; /* Grey for disabled */
+    cursor: not-allowed;
+    transform: none; /* No lift effect when disabled */
+}
+
+#result-section {
+    margin-top: 30px; /* More space above results */
+}
+
+.result {
+    padding: 20px; /* More padding */
+    background: #e9ecef; /* Lighter grey background for result */
+    border: none; /* Remove border */
+    border-radius: 8px;
+    text-align: left;
+    position: relative;
+    margin-bottom: 15px; /* Space between multiple results if ever implemented */
+}
+
+.result h3 {
+    margin: 0 0 15px; /* More space below result heading */
+    color: #495057; /* Slightly lighter heading color */
+    font-weight: 500;
+}
+
+.result p[contenteditable=\"true\"] {
+    margin: 0;
+    word-wrap: break-word;
+    line-height: 1.6;
+    color: #212529;
+    white-space: pre-wrap;
+    padding: 10px; /* More padding for a text-area feel */
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    /* --- Make it look more editable --- */
+    cursor: text; /* Text input cursor */
+    background-color: #ffffff; /* Always white background */
+    border: 1px solid #ced4da; /* Subtle border like a textarea */
+    min-height: 50px; /* Ensure it has some height even if empty */
+}
+
+/* Add a hover effect */
+.result p[contenteditable=\"true\"]:hover {
+    border-color: #adb5bd; /* Slightly darker border on hover */
+}
+
+/* Keep existing focus style for active editing */
+.result p[contenteditable=\"true\"]:focus {
+    background-color: #ffffff;
+    border-color: #80bdff; /* Use border color change for focus */
+    outline: 0; /* Remove default outline */
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Keep focus shadow */
+}
+
+.copy-btn {
+    position: absolute;
+    top: 15px; /* Adjust position */
+    right: 15px;
+    padding: 6px 12px; /* Adjust padding */
+    background-color: #28a745; /* Success green */
+    color: white;
+    border: none;
+    border-radius: 6px; /* Slightly rounded */
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+}
+
+/* Add styles for the copied animation */
+.copy-btn.copied {
+    background-color: #1a7431; /* Darker green when copied */
+    animation: pulse 0.5s ease-out;
+}
+
+.copy-btn:hover {
+    background-color: #218838; /* Darker green */
+    transform: translateY(-1px); /* Slight lift */
+}
+
+.copy-btn:disabled {
+    background-color: #6c757d; /* Grey for copied/disabled */
+    cursor: default;
+    transform: none;
+}
+
+.error {
+    color: #721c24; /* Darker red text */
+    margin-top: 15px;
+    margin-bottom: 15px; /* Add bottom margin */
+    padding: 12px 15px; /* Adjust padding */
+    background-color: #f8d7da; /* Light red background */
+    border: 1px solid #f5c6cb; /* Red border */
+    border-radius: 8px;
+    display: none;
+    text-align: left;
+    font-weight: 500;
+}
+
+.loading {
+    display: none;
+    margin: 20px 0 15px; /* Adjust margin */
+    color: #6c757d; /* Grey color */
+    font-style: normal; /* Remove italic */
+    font-weight: 500;
+}
+
+.loading::after {
+    content: "Processing...";
+    display: inline-block;
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+/* Keep keyframes */
+@keyframes dots {
+    0%, 20% { content: "Processing."; }
+    40% { content: "Processing.."; }
+    60% { content: "Processing..."; }
+    80%, 100% { content: "Processing...."; }
+}
+
+/* Keyframes for the pulse animation */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+ 

@@ -1,143 +1,74 @@
-from fastapi import FastAPI, Form, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from typing import List, Optional
+import logging
 
-app = FastAPI()
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text Filter App</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .container {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 600px;
-            text-align: center;
-        }
-        h1 {
-            color: #333;
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            margin: 10px 0;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            text-align: left;
-            position: relative;
-        }
-        .result h3 {
-            margin: 0 0 10px;
-            color: #555;
-        }
-        .copy-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 5px 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .copy-btn:hover {
-            background-color: #218838;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Text Filter Application</h1>
-        <form action="/process" method="post">
-            <label for="text">Enter text:</label>
-            <textarea name="text" id="text" placeholder="Enter your text here..."></textarea>
-            <button type="submit">Process</button>
-        </form>
-        {result_section}
-    </div>
-    <script>
-        function copyToClipboard(elementId) {
-            const text = document.getElementById(elementId).innerText;
-            navigator.clipboard.writeText(text).catch(err => {
-                console.error('Failed to copy: ', err);
-            });
-        }
-    </script>
-</body>
-</html>
-"""
+app = FastAPI(title="iTest text filter", version="1.0.0")
 
-@app.get("/", response_class=HTMLResponse)
-async def home():
-    return HTML_TEMPLATE.replace("{result_section}", "")
+# Монтирование статических файлов
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.post("/process", response_class=HTMLResponse)
-async def process_text(
-    text: Optional[str] = Form(None)
-):
+# Настройка шаблонов Jinja2
+templates = Jinja2Templates(directory="templates")
+
+# --- Вспомогательная функция для обработки текста ---
+def extract_numeric_lines(text: str) -> List[str]:
+    """Извлекает числовые строки, следующие за строками, начинающимися с '42123'."""
     if not text:
-        raise HTTPException(status_code=400, detail="Please provide text.")
-
-    # Process the text to find "42123" and its numeric following line
-    lines = text.splitlines()
+        return []
+    
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
     results = []
+    
     for i, line in enumerate(lines):
-        if line.strip().startswith("42123") and i + 1 < len(lines):
+        if line.startswith("42123") and i + 1 < len(lines):
             next_line = lines[i + 1].strip()
+            # Проверяем, является ли следующая строка числом (возможно, со знаком '+')
             if next_line.isdigit() or (next_line.startswith("+") and next_line[1:].isdigit()):
                 results.append(next_line)
+    return results
 
-    result_html = ""
-    if results:
-        result_text = "<br>".join(results)
-        result_html = (
-            f"<div class='result'>"
-            f"<h3>Result:</h3>"
-            f"<p id='result-text'>{result_text}</p>"
-            f"<button class='copy-btn' onclick=\"copyToClipboard('result-text')\">Copy</button>"
-            f"</div>"
-        )
-    else:
-        result_html = "<div class='result'><h3>Result:</h3><p>No matches found.</p></div>"
+# --- Эндпоинты ---
 
-    return HTML_TEMPLATE.replace("{result_section}", result_html)
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    """Отображает главную страницу с формой."""
+    return templates.TemplateResponse("index.html", {"request": request, "results": None, "error": None})
+
+@app.post("/process", response_class=JSONResponse)
+async def process_text_api(
+    text: str = Form(...) # Используем Form(...) для обязательного поля
+):
+    """Обрабатывает текст и возвращает результат в формате JSON."""
+    try:
+        if not text.strip():
+            # Дополнительная проверка на пустой ввод после пробелов
+            raise HTTPException(status_code=400, detail="Please provide non-empty text.")
+
+        logger.info("Processing text input via API")
+        
+        results = extract_numeric_lines(text)
+        logger.info(f"Found {len(results)} matches")
+
+        return JSONResponse(content={"results": results})
+        
+    except HTTPException as http_exc:
+        # Перехватываем HTTPException, чтобы не логировать их как 500 ошибку
+        logger.warning(f"HTTP Exception: {http_exc.status_code} - {http_exc.detail}")
+        raise http_exc # Повторно вызываем исключение для FastAPI
+    except Exception as e:
+        # Логируем другие неожиданные ошибки
+        logger.error(f"Error processing text: {str(e)}", exc_info=True) # Добавляем exc_info для трассировки стека
+        # Возвращаем общую ошибку 500 клиенту
+        return JSONResponse(status_code=500, content={"error": "An internal server error occurred."})
+
+# --- Код ниже удален, так как HTML/CSS/JS перенесены ---
+# HTML_TEMPLATE = ...
+# @app.post("/process", response_class=HTMLResponse) ... (старая версия эндпоинта)
+# Старый GET "/" также заменен на использование Jinja
