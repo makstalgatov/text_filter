@@ -1,0 +1,28 @@
+        version: '3.8'
+
+        services:
+          app:
+            build: . # Собрать образ из Dockerfile в текущей директории
+            container_name: itestfilter_app
+            expose:
+              - "8000" # Открыть порт 8000 только для внутренней сети Docker
+            volumes:
+              # Том для статических файлов, чтобы Nginx мог их видеть
+              - ./static:/app/static
+            # Можно добавить env_file: .env если будете использовать переменные окружения
+
+          nginx:
+            image: nginx:alpine # Использовать готовый образ Nginx
+            container_name: itestfilter_nginx
+            ports:
+              - "80:80"   # Пробросить порт 80 хоста на порт 80 контейнера
+              - "443:443" # Пробросить порт 443 хоста на порт 443 контейнера
+            volumes:
+              # Подключить нашу конфигурацию Nginx
+              - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+              # Подключить сертификаты (read-only)
+              - ./nginx/ssl:/etc/nginx/ssl:ro
+              # Подключить статические файлы из директории проекта (read-only)
+              - ./static:/app/static:ro
+            depends_on:
+              - app # Запустить Nginx только после запуска 'app'
