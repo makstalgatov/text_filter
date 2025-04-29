@@ -15,6 +15,21 @@
         
         <!-- Form submits using JavaScript (handleSubmit) -->
         <form id="filterForm" onsubmit="handleSubmit(event); return false;">
+            
+            <!-- Logic Selection Radio Buttons -->
+            <div class="logic-selection">
+                <p>Select processing logic:</p>
+                 <label for="logic_only_cli">
+                    <input type="radio" id="logic_only_cli" name="logic_choice" value="only_cli" checked>
+                    Only CLI
+                </label>
+                 <label for="logic_with_samples">
+                    <input type="radio" id="logic_with_samples" name="logic_choice" value="with_samples">
+                    With samples
+                </label>
+            </div>
+            <!-- End Logic Selection -->
+
             <div class="label-container">
                 <label for="text">Enter text:</label>
                 <button type="button" id="clear-btn" class="clear-btn" title="Clear text">&times;</button>
