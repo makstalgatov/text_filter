@@ -118,3 +118,43 @@
 ├── requirements.txt     # Зависимости Python 
 └── README.md            # Этот файл 
 ``` 
+
+## Configuration
+
+To enable the "With Samples (ELK Lookup)" feature, you need to configure the following environment variables before running the application:
+
+*   `ELK_URL`: The full URL to your Elasticsearch search endpoint (e.g., `http://elk.example.com:9200/filebeat-*/_search`).
+*   `ELK_USER`: The username for Elasticsearch authentication.
+*   `ELK_PASSWORD`: The password for Elasticsearch authentication.
+*   `ELK_TIMEOUT` (Optional): The timeout in seconds for Elasticsearch queries (defaults to 15).
+
+**Example (Linux/macOS):**
+
+```bash
+export ELK_URL="http://your-elk-url/.../_search"
+export ELK_USER="your_elk_user"
+export ELK_PASSWORD="your_elk_password"
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+**Example (Docker Compose):**
+
+You can add these variables to the `environment` section of the `web` service in your `docker-compose.yml` file:
+
+```yaml
+services:
+  web:
+    # ... other settings ...
+    environment:
+      - ELK_URL=http://your-elk-url/.../_search
+      - ELK_USER=your_elk_user
+      - ELK_PASSWORD=your_elk_password
+      - ELK_TIMEOUT=20 # Optional
+    # ...
+```
+
+If these variables are not set, the application will still run, but the "With Samples (ELK Lookup)" logic will log a warning and will not be able to fetch data from Elasticsearch.
+
+## Running the Application
+
+# ... (rest of README) ... 

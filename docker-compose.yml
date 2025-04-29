@@ -9,7 +9,9 @@
             volumes:
               # Том для статических файлов, чтобы Nginx мог их видеть
               - ./static:/app/static
-            # Можно добавить env_file: .env если будете использовать переменные окружения
+            # Указываем Docker Compose использовать файл .env для переменных окружения
+            env_file:
+              - .env
 
           nginx:
             image: nginx:alpine # Использовать готовый образ Nginx
