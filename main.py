@@ -56,10 +56,10 @@ def extract_numeric_lines(text: str) -> List[str]:
     return results
 
 def extract_cli_pairs(text: str) -> List[Dict[str, str]]:
-    """Извлекает пары (CLI Sent, CLI Received), находя строки '42123...' и следующие за ними номера."""
+    """Извлекает пары (CLI Sent, CLI Received), включая случаи с 'No CLI presented'."""
     if not text:
         return []
-        
+
     lines = [line.strip() for line in text.splitlines() if line.strip()] # Убираем пустые строки
     pairs = []
     i = 0
@@ -70,20 +70,31 @@ def extract_cli_pairs(text: str) -> List[Dict[str, str]]:
             next_line = lines[i + 1]
             # Проверяем, является ли следующая строка валидным номером
             if next_line.isdigit() or (next_line.startswith("+") and next_line[1:].isdigit()):
-                # Нашли валидную пару!
+                # Нашли валидную пару с номером!
                 pairs.append({"sent": current_line, "received": next_line})
                 # Перескакиваем через найденную пару
                 i += 2
                 continue # Переходим к следующей итерации внешнего цикла
-                
-        # Если пара не найдена на текущей строке, просто переходим к следующей
+            # --- Новая проверка: если следующая строка "No CLI presented" ---
+            elif next_line == "No CLI presented":
+                 # Нашли пару с "No CLI presented", сохраняем как "anonymous"
+                 pairs.append({"sent": current_line, "received": "anonymous"})
+                 # Перескакиваем через найденную пару
+                 i += 2
+                 continue # Переходим к следующей итерации внешнего цикла
+            # --- Конец новой проверки ---
+
+        # Если пара (валидная или "No CLI") не найдена на текущей строке,
+        # просто переходим к следующей
         i += 1
 
     if not pairs:
-         logger.warning("No lines starting with '42123' followed by a number were found.")
+         # Updated warning message
+         logger.warning("No lines starting with '42123' followed by a number or 'No CLI presented' were found.")
          logger.debug("Text snippet where search failed (first 1000 chars): %s", text[:1000])
     else:
-        logger.info(f"Extracted {len(pairs)} CLI pairs using simple pattern search.")
+         # Updated info message
+        logger.info(f"Extracted {len(pairs)} CLI pairs (including 'anonymous').")
 
     return pairs
 
