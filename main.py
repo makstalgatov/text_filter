@@ -162,12 +162,54 @@ def query_elk(cli_sent: str) -> Optional[Dict]:
 
 
 def process_elk_hits(hits: List[Dict], cli_sent: str, delivered_cli: str) -> Optional[str]:
-    """Обрабатывает результаты ELK: находит timestamp, BYE и INVITE, извлекает данные и форматирует строку."""
+    """Обрабатывает результаты ELK: находит timestamp из message, BYE и INVITE, извлекает данные и форматирует строку."""
     if not hits:
         logger.warning(f"No ELK hits provided for processing {cli_sent}.")
         return None
 
-    earliest_ts_str = hits[0]["_source"].get("@timestamp") # Самый ранний timestamp
+    # Ищем timestamp в первом сообщении
+    first_message = hits[0]["_source"].get("message", "")
+    time_match = re.search(r"^\w+\s+\d+\s+(\d{2}:\d{2}:\d{2})", first_message) # Ищем ЧЧ:ММ:СС
+    formatted_timestamp = None
+    if time_match:
+        extracted_time = time_match.group(1)
+        # Если нужно добавить дату, можно взять ее из @timestamp, если он есть
+        timestamp_field = hits[0]["_source"].get("@timestamp")
+        if timestamp_field:
+            try:
+                # Use datetime.fromisoformat for potentially timezone-aware strings
+                # Handle both 'Z' and '+HH:MM' offsets if present
+                if timestamp_field.endswith('Z'):
+                    timestamp_field = timestamp_field[:-1] + '+00:00'
+                dt_object = datetime.fromisoformat(timestamp_field)
+                date_part = dt_object.strftime('%Y-%m-%d')
+                formatted_timestamp = f"{date_part} {extracted_time}"
+                logger.debug(f"Extracted time '{extracted_time}' from message, combined with date '{date_part}' from @timestamp for {cli_sent}")
+            except ValueError:
+                 logger.warning(f"Could not parse date from '@timestamp': {timestamp_field} for {cli_sent}. Using time only.")
+                 formatted_timestamp = extracted_time # Используем только время, если дата не парсится
+        else:
+            logger.debug(f"Extracted time '{extracted_time}' from message for {cli_sent}, @timestamp field missing.")
+            formatted_timestamp = extracted_time # Используем только время, если @timestamp нет
+    else:
+        logger.warning(f"Could not extract HH:MM:SS time from the beginning of the first message for {cli_sent}. Message: '{first_message[:100]}...' Attempting fallback to @timestamp.")
+        # Можно добавить fallback на @timestamp, если он есть и время не найдено
+        timestamp_field = hits[0]["_source"].get("@timestamp")
+        if timestamp_field:
+             try:
+                 # Use datetime.fromisoformat for potentially timezone-aware strings
+                 if timestamp_field.endswith('Z'):
+                    timestamp_field = timestamp_field[:-1] + '+00:00'
+                 dt_object = datetime.fromisoformat(timestamp_field)
+                 formatted_timestamp = dt_object.strftime('%Y-%m-%d %H:%M:%S')
+                 logger.info(f"Using fallback timestamp from '@timestamp' field for {cli_sent}: {formatted_timestamp}")
+             except ValueError:
+                 logger.error(f"Could not parse fallback timestamp '@timestamp': {timestamp_field} for {cli_sent}.")
+                 return None # Не можем получить время
+        else:
+             logger.error(f"Could not extract time from message and '@timestamp' field is missing for {cli_sent}.")
+             return None # Не можем получить время
+
     bye_message_source = None
     invite_message_source = None
     call_id = None
@@ -201,15 +243,15 @@ def process_elk_hits(hits: List[Dict], cli_sent: str, delivered_cli: str) -> Opt
         # Пока возвращаем None, так как 'To' нужен для результата.
         return None
 
-    # --- Извлечение данных --- 
+    # --- Извлечение данных ---
     bye_message_content = bye_message_source.get("message", "")
     invite_message_content = invite_message_source.get("message", "")
-    
+
     # Из BYE
     src_user_bye_match = re.search(r'src_user=(\d+)', bye_message_content)
     dst_user_bye_match = re.search(r'dst_user=(\d+)', bye_message_content)
     dst_ouser_bye_match = re.search(r'dst_ouser=(\+?\d+)', bye_message_content)
-    
+
     # Из INVITE (нужен только dst_user)
     dst_user_invite_match = re.search(r'dst_user=(\d+)', invite_message_content)
 
@@ -219,46 +261,47 @@ def process_elk_hits(hits: List[Dict], cli_sent: str, delivered_cli: str) -> Opt
         logger.debug(f"BYE Fields: src_user={src_user_bye_match}, dst_user={dst_user_bye_match}, dst_ouser={dst_ouser_bye_match}")
         logger.debug(f"INVITE Fields: dst_user={dst_user_invite_match}")
         return None
-        
+
     src_user_in_bye = src_user_bye_match.group(1)
     dst_user_in_bye = dst_user_bye_match.group(1)
-    dst_ouser = dst_ouser_bye_match.group(1) 
+    dst_ouser = dst_ouser_bye_match.group(1)
     dst_user_in_invite = dst_user_invite_match.group(1) # Это номер "to"
-    
-    # --- Верификация --- 
+
+    # --- Верификация ---
     # Проверяем, что cli_sent совпадает ЛИБО с src_user из BYE, ЛИБО с dst_user из BYE
     if cli_sent != src_user_in_bye and cli_sent != dst_user_in_bye:
         logger.warning(f"Verification failed for {cli_sent}: Neither src_user ({src_user_in_bye}) nor dst_user ({dst_user_in_bye}) in BYE message match original CLI Sent.")
         return None
     logger.debug(f"Verification passed for {cli_sent}: Found in BYE src_user or dst_user.")
-    # --- Конец Верификации --- 
+    # --- Конец Верификации ---
 
-    # Форматируем timestamp (из самого раннего сообщения)
-    try:
-        dt_object = datetime.fromisoformat(earliest_ts_str.replace('Z', '+00:00'))
-        formatted_timestamp = dt_object.strftime('%Y-%m-%d %H:%M:%S')
-    except ValueError:
-        logger.error(f"Could not parse timestamp '{earliest_ts_str}' for {cli_sent}.")
-        return None 
+    # --- Формируем итоговую строку ---
 
-    # --- Формируем итоговую строку --- 
-    
     # Определяем номер "from" на основе dst_ouser из BYE и префикса
     dst_ouser_prefix = "699954"
-    default_from_number = "441224607102"
-    
+    default_from_number = "441224607102" # Номер по умолчанию, если префикс не совпадает
+
+    from_number = default_from_number # По умолчанию
     if dst_ouser.startswith(dst_ouser_prefix):
-        from_number = default_from_number
-        # logger.debug(...) # Логирование можно оставить или убрать
+        from_number_suffix = dst_ouser[len(dst_ouser_prefix):] # Берем часть после префикса
+        # Формируем полный номер "from" (например, "421" + остаток)
+        # !!! УТОЧНЕНИЕ: Здесь используется жестко заданный префикс "421". Убедитесь, что это правильно.
+        potential_from = "421" + from_number_suffix # Пример, нужно уточнить правило
+        # Здесь можно добавить проверку на длину или формат potential_from, если нужно
+        from_number = potential_from
+        logger.debug(f"Constructed 'from' number: {from_number} from dst_ouser: {dst_ouser}")
     else:
-        from_number = dst_ouser
-        # logger.debug(...) 
-        
-    # Номер "to" берется из dst_user сообщения INVITE
-    to_number = dst_user_in_invite 
-    
-    logger.info(f"Successfully processed data for {cli_sent}. From: {from_number}, To: {to_number}, Timestamp: {formatted_timestamp}")
-    return f"{formatted_timestamp} UTC from {from_number} to {to_number} | CLI displayed {delivered_cli}"
+        logger.debug(f"dst_ouser ({dst_ouser}) does not start with prefix {dst_ouser_prefix}. Using default 'from' number: {default_from_number}")
+
+
+    # Номер "to" - это dst_user из INVITE
+    to_number = dst_user_in_invite
+
+    # Собираем результат, используя 'formatted_timestamp', полученный ранее
+    # Возвращаем формат: "YYYY-MM-DD HH:MM:SS UTC from [num] to [num] | CLI displayed [num]"
+    result_string = f"{formatted_timestamp} UTC from {from_number} to {to_number} | CLI displayed {delivered_cli}"
+    logger.info(f"Successfully processed ELK results for {cli_sent}. Result: {result_string}")
+    return result_string
 
 
 # --- Эндпоинты ---
