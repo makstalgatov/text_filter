@@ -277,22 +277,21 @@ def process_elk_hits(hits: List[Dict], cli_sent: str, delivered_cli: str) -> Opt
 
     # --- Формируем итоговую строку ---
 
-    # Определяем номер "from" на основе dst_ouser из BYE и префикса
-    dst_ouser_prefix = "699954"
-    default_from_number = "441224607102" # Номер по умолчанию, если префикс не совпадает
-
-    from_number = default_from_number # По умолчанию
-    if dst_ouser.startswith(dst_ouser_prefix):
-        from_number_suffix = dst_ouser[len(dst_ouser_prefix):] # Берем часть после префикса
-        # Формируем полный номер "from" (например, "421" + остаток)
-        # !!! УТОЧНЕНИЕ: Здесь используется жестко заданный префикс "421". Убедитесь, что это правильно.
-        potential_from = "421" + from_number_suffix # Пример, нужно уточнить правило
-        # Здесь можно добавить проверку на длину или формат potential_from, если нужно
-        from_number = potential_from
-        logger.debug(f"Constructed 'from' number: {from_number} from dst_ouser: {dst_ouser}")
-    else:
-        logger.debug(f"dst_ouser ({dst_ouser}) does not start with prefix {dst_ouser_prefix}. Using default 'from' number: {default_from_number}")
-
+    # --- Удаляем старую логику с префиксом и default --- 
+    # dst_ouser_prefix = "699954"
+    # default_from_number = "441224607102"
+    # from_number = default_from_number
+    # if dst_ouser.startswith(dst_ouser_prefix):
+    #     from_number_suffix = dst_ouser[len(dst_ouser_prefix):]
+    #     potential_from = "421" + from_number_suffix
+    #     from_number = potential_from
+    #     logger.debug(f"Constructed 'from' number: {from_number} from dst_ouser: {dst_ouser}")
+    # else:
+    #     logger.debug(f"dst_ouser ({dst_ouser}) does not start with prefix {dst_ouser_prefix}. Using default 'from' number: {default_from_number}")
+    
+    # Номер "from" - это dst_ouser, извлеченный из BYE сообщения
+    from_number = dst_ouser 
+    logger.debug(f"Setting 'from' number from BYE message dst_ouser: {from_number}")
 
     # Номер "to" - это dst_user из INVITE
     to_number = dst_user_in_invite
